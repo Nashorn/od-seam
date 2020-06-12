@@ -1,0 +1,9 @@
+{
+  "description": "lite server for localhost development",
+  "devDependencies": {},
+  "license": "ISC",
+  "main": "main.js",
+  "name": "od-seam",
+  "scripts": {},
+  "version": "1.0.0"
+}
