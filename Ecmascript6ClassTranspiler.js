@@ -298,12 +298,16 @@ Ecmascript6ClassTranspiler.prototype.Build = async function (src, cb) {
             ))
         } 
     }
-    if(BUILDCONFIG.LoadsAsync){
+    /*if(BUILDCONFIG.Encrypt){
+        cb(`${src}`);
+    }
+    else if(BUILDCONFIG.LoadsAsync){
     // src=src.replace("await import","import")
         cb(`(async ()=>{ ${src} })()`);
     } else {
         cb(`(()=>{ ${src} })()`);
-    }
+    }*/
+    cb(`${src}`);
 }
 
 Ecmascript6ClassTranspiler.prototype.doImports = async function(match){

@@ -6,7 +6,7 @@ const fs = require('fs');
 var fs_path = require('path');
 const Ecmascript6ClassTranspiler = require(__dirname+'/Ecmascript6ClassTranspiler.js');
 var compiler = new Ecmascript6ClassTranspiler;
-
+var JavaScriptObfuscator = require('javascript-obfuscator');
 var args = process.argv.slice(2);
 var exec = require('child_process').exec;
 dir = args[0] ?  args[0] : __dirname;
@@ -32,7 +32,41 @@ function getInputSrc(path){
 
 var child;
 function save(res){
-    console.log("Saving compilation to: ", BUILDCONFIG.Output.SourcePath)
+    var obfuscationResult; 
+    var encSrc;
+    if(BUILDCONFIG.Encrypt){
+        console.log("Encrypting compilation to: ", BUILDCONFIG.Output.EncryptPath);
+        obfuscationResult = JavaScriptObfuscator.obfuscate(res,{
+            compact: true,
+            controlFlowFlattening: false,
+            controlFlowFlatteningThreshold: 1,
+            numbersToExpressions: false,
+            simplify: true,
+            shuffleStringArray: true,
+            splitStrings: false,
+            stringArrayThreshold: .75,
+            ignoreRequireImports:true
+        });
+        encSrc = obfuscationResult.getObfuscatedCode();
+        if(BUILDCONFIG.LoadsAsync){
+            encSrc = `(async ()=>{ ${encSrc} })()`
+        } else {
+            encSrc = `(()=>{ ${encSrc} })()`
+        }
+        // res=encSrc;
+        // console.log("encSrc",encSrc)
+        fs.writeFileSync(BUILDCONFIG.Output.EncryptPath, encSrc);
+    }
+    else {
+        if(BUILDCONFIG.LoadsAsync){
+            res = `(async ()=>{ ${res} })()`
+        } else {
+            res = `(()=>{ ${res} })()`
+        }
+    }
+
+    
+    console.log("Saving compilation to: ", BUILDCONFIG.Output.SourcePath);
     fs.writeFileSync(BUILDCONFIG.Output.SourcePath, res);
     var uncompressed_size = getFilesizeInBytes(BUILDCONFIG.Output.SourcePath)
     console.log(`SAVED: ${Math.round(uncompressed_size/1024).toFixed()}kb`, BUILDCONFIG.Output.SourcePath);
@@ -45,7 +79,7 @@ function save(res){
                 console.log("Error -> "+error,stderr);
             }
         });
-    },2000);
+    },5000);
 }
 
 
