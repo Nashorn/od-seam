@@ -48,21 +48,20 @@ function save(res){
             ignoreRequireImports:true
         });
         encSrc = obfuscationResult.getObfuscatedCode();
-        if(BUILDCONFIG.LoadsAsync){
-            encSrc = `(async ()=>{ ${encSrc} })()`
-        } else {
-            encSrc = `(()=>{ ${encSrc} })()`
-        }
+        // console.log("LoadsAsync",BUILDCONFIG.LoadsAsync)
+        // if(BUILDCONFIG.LoadsAsync){
+        //     res = `(async ()=>{ ${encSrc} })()`
+        // } else {
+        //     res = `(()=>{ ${encSrc} })()`
+        // }
         // res=encSrc;
         // console.log("encSrc",encSrc)
         fs.writeFileSync(BUILDCONFIG.Output.EncryptPath, encSrc);
     }
-    else {
-        if(BUILDCONFIG.LoadsAsync){
-            res = `(async ()=>{ ${res} })()`
-        } else {
-            res = `(()=>{ ${res} })()`
-        }
+    if(BUILDCONFIG.LoadsAsync){
+        res = `(async ()=>{ ${res} })()`
+    } else {
+        res = `(()=>{ ${res} })()`
     }
 
     
