@@ -56,6 +56,9 @@ function save(res){
         // }
         // res=encSrc;
         // console.log("encSrc",encSrc)
+        if(BUILDCONFIG.LoadsAsync){
+            encSrc = `(async ()=>{ ${encSrc} })()`
+        }
         fs.writeFileSync(BUILDCONFIG.Output.EncryptPath, encSrc);
     }
     if(BUILDCONFIG.LoadsAsync){
