@@ -39,12 +39,15 @@ function save(res){
         obfuscationResult = JavaScriptObfuscator.obfuscate(res,{
             compact: true,
             controlFlowFlattening: false,
-            controlFlowFlatteningThreshold: 1,
-            numbersToExpressions: false,
-            simplify: true,
-            shuffleStringArray: true,
+            // controlFlowFlatteningThreshold: 0,
+            // identifierNamesGenerator:"hexadecimal",
+            // numbersToExpressions:true,
+            // optionsPreset:"medium-obfuscation",
+            // numbersToExpressions: false,
+            simplify: false,
+            shuffleStringArray: false,
             splitStrings: false,
-            stringArrayThreshold: .75,
+            // stringArrayThreshold: .75,
             ignoreRequireImports:true
         });
         encSrc = obfuscationResult.getObfuscatedCode();
@@ -57,14 +60,14 @@ function save(res){
         // res=encSrc;
         // console.log("encSrc",encSrc)
         if(BUILDCONFIG.LoadsAsync){
-            encSrc = `(async ()=>{ ${encSrc} })()`
+            encSrc = `(async (global)=>{ ${encSrc} })(this)`
         }
         fs.writeFileSync(BUILDCONFIG.Output.EncryptPath, encSrc);
     }
     if(BUILDCONFIG.LoadsAsync){
-        res = `(async ()=>{ ${res} })()`
+        res = `(async (global)=>{ ${res} })(this)`
     } else {
-        res = `(()=>{ ${res} })()`
+        res = `((global)=>{ ${res} })(this)`
     }
 
     
