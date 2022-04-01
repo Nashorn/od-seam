@@ -77,7 +77,7 @@ function save(res){
     console.log(`SAVED: ${Math.round(uncompressed_size/1024).toFixed()}kb`, BUILDCONFIG.Output.SourcePath);
 
     setTimeout(e=>{
-        child = exec("java -jar node_modules/od-toolset/tools/closure-compiler-v20200719.jar --dependency_mode NONE --compilation_level "+BUILDCONFIG.CompilationLevel+" --js " + BUILDCONFIG.Output.SourcePath + "  --js_output_file " + BUILDCONFIG.Output.CompressedPath + " -W QUIET --language_in "+BUILDCONFIG.InputLanguage+" --language_out " + BUILDCONFIG.OutputLanguage, function (error, stdout, stderr){
+        child = exec("java -jar node_modules/od-toolset/tools/closure-compiler-v20220301.jar --dependency_mode NONE --compilation_level "+BUILDCONFIG.CompilationLevel+" --js " + BUILDCONFIG.Output.SourcePath + "  --js_output_file " + BUILDCONFIG.Output.CompressedPath + " -W QUIET --language_in "+BUILDCONFIG.InputLanguage+" --language_out " + BUILDCONFIG.OutputLanguage, function (error, stdout, stderr){
             var compressed_size = getFilesizeInBytes(BUILDCONFIG.Output.CompressedPath)
             console.log(`COMPRESSED TO: ${Math.round(compressed_size/1024).toFixed()}kb`);
             if(stderr || error !== null){
