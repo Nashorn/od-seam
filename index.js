@@ -67,7 +67,7 @@ function save(res){
     if(BUILDCONFIG.LoadsAsync){
         res = `(async (global)=>{ ${res} })(this)`
     } else {
-        res = `((global)=>{ ${res} })(this)`
+        res = `${res}`
     }
 
     
