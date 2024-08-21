@@ -1,5 +1,6 @@
 
 
+const Config = require('./-appconfig.js');//5/25/20 -- loads from root project
 const BUILDCONFIG = require('../../-buildconfig.js');//5/25/20 -- loads from root project
 // const test = require(__dirname + "/test.js");
 const fs = require('fs');
