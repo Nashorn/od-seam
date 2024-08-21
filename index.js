@@ -10,18 +10,8 @@ var JavaScriptObfuscator = require('javascript-obfuscator');
 var args = process.argv.slice(2);
 var exec = require('child_process').exec;
 dir = args[0] ?  args[0] : __dirname;
+const { minify } = require('terser');
 
-// console.log("__dirname",BUILDCONFIG);
-
-// compiler.Build(
-//     `import '/src/modules/test2.mjs';
-
-
-//     namespace("com.ui.Test", class {
-
-//     })`, 
-//     res => console.log(res)
-// )
 compiler.Build(getInputSrc(), res => save(res))
 
 function getInputSrc(path){
@@ -31,7 +21,7 @@ function getInputSrc(path){
 
 
 var child;
-function save(res){
+async function save(res){
     var obfuscationResult; 
     var encSrc;
     if(BUILDCONFIG.Encrypt){
@@ -51,14 +41,6 @@ function save(res){
             ignoreRequireImports:true
         });
         encSrc = obfuscationResult.getObfuscatedCode();
-        // console.log("LoadsAsync",BUILDCONFIG.LoadsAsync)
-        // if(BUILDCONFIG.LoadsAsync){
-        //     res = `(async ()=>{ ${encSrc} })()`
-        // } else {
-        //     res = `(()=>{ ${encSrc} })()`
-        // }
-        // res=encSrc;
-        // console.log("encSrc",encSrc)
         if(BUILDCONFIG.LoadsAsync){
             encSrc = `(async (global)=>{ ${encSrc} })(this)`
         }
@@ -67,31 +49,80 @@ function save(res){
     if(BUILDCONFIG.LoadsAsync){
         res = `(async (global)=>{ ${res} })(this)`
     } else {
-        res = `${res}`
+        res = `((global)=>{ ${res} })(this)`
     }
 
+    if (!fs.existsSync(fs_path.dirname(BUILDCONFIG.Output.SourcePath))) {
+        fs.mkdirSync(fs_path.dirname(BUILDCONFIG.Output.SourcePath), { recursive: true });
+    }
     
+    BUILDCONFIG.Output.CompressedPath   = fs_path.resolve(BUILDCONFIG.Output.CompressedPath);
+    BUILDCONFIG.Output.SourcePath       = fs_path.resolve(BUILDCONFIG.Output.SourcePath);
+    BUILDCONFIG.Output.EncryptPath      = fs_path.resolve(BUILDCONFIG.Output.EncryptPath);
+
     console.log("Saving compilation to: ", BUILDCONFIG.Output.SourcePath);
     fs.writeFileSync(BUILDCONFIG.Output.SourcePath, res);
     var uncompressed_size = getFilesizeInBytes(BUILDCONFIG.Output.SourcePath)
-    console.log(`SAVED: ${Math.round(uncompressed_size/1024).toFixed()}kb`, BUILDCONFIG.Output.SourcePath);
+    // console.log(`UNCOMPRESSED SIZE: ${Math.round(uncompressed_size/1024).toFixed()}kb`, BUILDCONFIG.Output.SourcePath);
 
-    setTimeout(e=>{
+    await sleep(1000);
+    // setTimeout(e=>{
         /**
             URL: https://github.com/google/closure-compiler/issues/3679
             URL: https://github.com/google/closure-compiler
             The default value for --language_in is STABLE (ES_2019 as of 9/2020).
             The default value for --language_out is whatever --language_in is.
          */
-        child = exec("java -jar node_modules/od-toolset/tools/closure-compiler-v20220301.jar --dependency_mode NONE --compilation_level "+BUILDCONFIG.CompilationLevel+" --js " + BUILDCONFIG.Output.SourcePath + "  --js_output_file " + BUILDCONFIG.Output.CompressedPath + " -W QUIET --language_in "+BUILDCONFIG.InputLanguage+" --language_out " + BUILDCONFIG.OutputLanguage, function (error, stdout, stderr){
-            var compressed_size = getFilesizeInBytes(BUILDCONFIG.Output.CompressedPath)
-            console.log(`COMPRESSED TO: ${Math.round(compressed_size/1024).toFixed()}kb`);
-            if(stderr || error !== null){
-                console.log("Error -> "+error,stderr);
+            
+
+        console.log("Compressing compilation to: ", BUILDCONFIG.Output.CompressedPath);
+        const config = {
+            compress: {
+              dead_code: true,
+              drop_console: false,
+              drop_debugger: true,
+              keep_classnames: true,
+              keep_fargs: true,
+              keep_fnames: true,
+              keep_infinity: true
+            },
+            mangle: false,
+            module: true,
+            sourceMap: false,
+            output: {
+              comments: false
             }
-        });
-    },5000);
+          };
+          const code = fs.readFileSync(BUILDCONFIG.Output.SourcePath, 'utf8');
+          const minified = await minify(code, config);
+          fs.writeFileSync(BUILDCONFIG.Output.CompressedPath, minified.code);
+          var compressed_size = getFilesizeInBytes(BUILDCONFIG.Output.CompressedPath);
+          console.log(`UNCOMPRESSED SIZE: ${Math.round(uncompressed_size/1024).toFixed()}kb`);
+          console.log(`COMPRESSED SIZE: ${Math.round(compressed_size/1024).toFixed()}kb`);
+
+        // child = exec("java -jar node_modules/od-toolset/tools/closure-compiler-v20240317.jar --dependency_mode NONE --compilation_level "+BUILDCONFIG.CompilationLevel+" --js " + BUILDCONFIG.Output.SourcePath + "  --js_output_file " + BUILDCONFIG.Output.CompressedPath + " -W QUIET --language_in "+BUILDCONFIG.InputLanguage+" --language_out " + BUILDCONFIG.OutputLanguage, async function (error, stdout, stderr){
+        //     await sleep(3000);
+        //     if(stderr || error !== null){
+        //         console.log("Error -> "+error,stderr);
+        //         return
+        //     }
+            // var compressed_size = getFilesizeInBytes(BUILDCONFIG.Output.CompressedPath)
+            // console.log(`COMPRESSED TO: ${Math.round(compressed_size/1024).toFixed()}kb`);
+            
+        // });
+
+        // npx terser input.js --output output.min.js --compress --mangle
+        // child = exec("npx terser "+BUILDCONFIG.Output.SourcePath+" --output "+BUILDCONFIG.Output.CompressedPath+" --compress --comments false --keep_classnames --keep_fnames", async function (error, stdout, stderr){
+        //     if(stderr || error !== null){
+        //         console.log("Error -> "+error,stderr);
+        //     }
+        // });
+
+        //compressJavaScript(BUILDCONFIG.Output.SourcePath, BUILDCONFIG.Output.CompressedPath);
+        
+    // },5000);
 }
+sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 function getFilesizeInBytes(filename) {
