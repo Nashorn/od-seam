@@ -1,10 +1,11 @@
 
 
-const Config = require('./-appconfig.js');//5/25/20 -- loads from root project
-const BUILDCONFIG = require('../../-buildconfig.js');//5/25/20 -- loads from root project
-// const test = require(__dirname + "/test.js");
 const fs = require('fs');
 var fs_path = require('path');
+const Config = require('./-appconfig.js');//5/25/20 -- loads from root project
+const BUILDCONFIG_PATH = resolveBuildConfigPath();//5/25/20 -- loads from root project
+const BUILDCONFIG = require(BUILDCONFIG_PATH);
+// const test = require(__dirname + "/test.js");
 const Ecmascript6ClassTranspiler = require(__dirname+'/Ecmascript6ClassTranspiler.js');
 var compiler = new Ecmascript6ClassTranspiler;
 var JavaScriptObfuscator = require('javascript-obfuscator');
@@ -12,6 +13,7 @@ var args = process.argv.slice(2);
 var exec = require('child_process').exec;
 dir = args[0] ?  args[0] : __dirname;
 const { minify } = require('terser');
+const compileHints = getCompileHints();
 
 compiler.Build(getInputSrc(), res => save(res))
 
@@ -45,6 +47,7 @@ async function save(res){
         if(BUILDCONFIG.LoadsAsync){
             encSrc = `(async (global)=>{ ${encSrc} })(this)`
         }
+        encSrc = prependCompileHints(encSrc);
         fs.writeFileSync(BUILDCONFIG.Output.EncryptPath, encSrc);
     }
     if(BUILDCONFIG.LoadsAsync){
@@ -62,6 +65,7 @@ async function save(res){
     BUILDCONFIG.Output.EncryptPath      = fs_path.resolve(BUILDCONFIG.Output.EncryptPath);
 
     console.log("Saving compilation to: ", BUILDCONFIG.Output.SourcePath);
+    res = prependCompileHints(res);
     fs.writeFileSync(BUILDCONFIG.Output.SourcePath, res);
     var uncompressed_size = getFilesizeInBytes(BUILDCONFIG.Output.SourcePath)
     // console.log(`UNCOMPRESSED SIZE: ${Math.round(uncompressed_size/1024).toFixed()}kb`, BUILDCONFIG.Output.SourcePath);
@@ -96,7 +100,7 @@ async function save(res){
           };
           const code = fs.readFileSync(BUILDCONFIG.Output.SourcePath, 'utf8');
           const minified = await minify(code, config);
-          fs.writeFileSync(BUILDCONFIG.Output.CompressedPath, minified.code);
+          fs.writeFileSync(BUILDCONFIG.Output.CompressedPath, prependCompileHints(minified.code));
           var compressed_size = getFilesizeInBytes(BUILDCONFIG.Output.CompressedPath);
           console.log(`UNCOMPRESSED SIZE: ${Math.round(uncompressed_size/1024).toFixed()}kb`);
           console.log(`COMPRESSED SIZE: ${Math.round(compressed_size/1024).toFixed()}kb`);
@@ -125,6 +129,24 @@ async function save(res){
 }
 sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+function getCompileHints() {
+    const hintsPath = fs_path.resolve(fs_path.dirname(BUILDCONFIG_PATH), 'allFunctionsCalledOnLoad.txt');
+    if (!fs.existsSync(hintsPath)) {
+        return '';
+    }
+
+    const hints = fs.readFileSync(hintsPath, 'utf8').trim();
+    return hints ? `${hints}\n` : '';
+}
+
+function prependCompileHints(code) {
+    if (!compileHints || code.startsWith(compileHints)) {
+        return code;
+    }
+
+    return `${compileHints}${code}`;
+}
+
 
 function getFilesizeInBytes(filename) {
     const stats = fs.statSync(filename);
@@ -133,3 +155,12 @@ function getFilesizeInBytes(filename) {
 }
 
 module.exports = child;
+
+function resolveBuildConfigPath() {
+    const projectBuildConfigPath = fs_path.resolve(process.cwd(), '-buildconfig.js');
+    if (fs.existsSync(projectBuildConfigPath)) {
+        return projectBuildConfigPath;
+    }
+
+    return require.resolve('../../-buildconfig.js');
+}
